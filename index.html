@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Java Quiz App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .quiz-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 600px;
+    }
+    .quiz-header {
+      margin-bottom: 20px;
+    }
+    .quiz-header h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #333;
+    }
+    .timer {
+      font-weight: bold;
+      color: red;
+      text-align: right;
+    }
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .option-btn {
+      background: #f0f0f0;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .option-btn:hover {
+      background: #dce4ff;
+    }
+    .option-btn.selected {
+      background: #4a90e2;
+      color: #fff;
+    }
+    .buttons {
+      margin-top: 25px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .buttons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-prev { background: #ccc; }
+    .btn-skip { background: #ffcc00; }
+    .btn-next { background: #28a745; color: #fff; }
+    .results {
+      text-align: center;
+    }
+    .results h2 {
+      margin-bottom: 15px;
+    }
+    .answer {
+      text-align: left;
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .correct { color: green; font-weight: bold; }
+    .wrong { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="quiz-container" id="quiz">
+    <div id="quiz-content"></div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      {
+        question: "Which of these is a primitive data type in Java?",
+        options: ["String", "int", "Array", "Class"],
+        correctAnswer: "int"
+      },
+      {
+        question: "What is the entry point of a Java program?",
+        options: ["main()", "start()", "run()", "execute()"],
+        correctAnswer: "main()"
+      },
+      {
+        question: "Which keyword is used to define a constant in Java?",
+        options: ["const", "final", "static", "volatile"],
+        correctAnswer: "final"
+      },
+      {
+        question: "Which of these is not part of OOP in Java?",
+        options: ["Encapsulation", "Polymorphism", "Compilation", "Inheritance"],
+        correctAnswer: "Compilation"
+      },
+      {
+        question: "Which collection class allows key-value mapping in Java?",
+        options: ["ArrayList", "HashMap", "LinkedList", "Vector"],
+        correctAnswer: "HashMap"
+      }
+    ];
+
+    let questions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let userAnswers = [];
+    let timer;
+    let timeLeft = 30;
+
+    const quizContent = document.getElementById("quiz-content");
+
+    // Shuffle helper
+    function shuffleArray(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    function startQuiz() {
+      questions = shuffleArray([...QUESTIONS]); // shuffle questions
+      currentIndex = 0;
+      score = 0;
+      userAnswers = [];
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 30;
+      const q = questions[currentIndex];
+      quizContent.innerHTML = `
+        <div class="quiz-header">
+          <h2>Question ${currentIndex + 1} of ${questions.length}</h2>
+          <p>${q.question}</p>
+          <div class="timer">⏳ Time left: <span id="time">${timeLeft}</span>s</div>
+        </div>
+        <div class="options">
+          ${shuffleArray([...q.options]).map((opt, i) => 
+            `<button class="option-btn" onclick="selectOption(this, '${opt}')">${opt}</button>`
+          ).join("")}
+        </div>
+        <div class="buttons">
+          <button class="btn-prev" onclick="prevQuestion()" ${currentIndex === 0 ? "disabled" : ""}>Previous</button>
+          <button class="btn-skip" onclick="skipQuestion()">Skip</button>
+          <button class="btn-next" onclick="nextQuestion()">
+            ${currentIndex + 1 === questions.length ? "Submit" : "Next"}
+          </button>
+        </div>
+      `;
+      startTimer();
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time").textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          skipQuestion(); // auto skip when time runs out
+        }
+      }, 1000);
+    }
+
+    function selectOption(btn, option) {
+      document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      userAnswers[currentIndex] = option;
+    }
+
+    function nextQuestion() {
+      clearInterval(timer);
+      if (!userAnswers[currentIndex]) return alert("Please select or skip!");
+      if (userAnswers[currentIndex] === questions[currentIndex].correctAnswer) {
+        score++;
+      }
+      if (currentIndex + 1 < questions.length) {
+        currentIndex++;
+        loadQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    function prevQuestion() {
+      clearInterval(timer);
+      if (currentIndex > 0) {
+        currentIndex--;
+        loadQuestion();
+      }
+    }
+
+    function skipQuestion() {
+      clearInterval(timer);
+      if (!userAnswers[currentIndex]) userAnswers[currentIndex] = "Skipped";
+      if (currentIndex + 1 < questions.length) {
+        currentIndex++;
+        loadQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    function showResults() {
+      clearInterval(timer);
+      quizContent.innerHTML = `
+        <div class="results">
+          <h2>Quiz Complete!</h2>
+          <p>Your Score: ${score} / ${questions.length}</p>
+          <div>
+            ${questions.map((q, i) => `
+              <div class="answer">
+                <strong>Q${i+1}:</strong> ${q.question}<br>
+                Your Answer: <span class="${userAnswers[i] === q.correctAnswer ? "correct" : "wrong"}">${userAnswers[i]}</span><br>
+                ${userAnswers[i] !== q.correctAnswer ? `Correct Answer: <span class="correct">${q.correctAnswer}</span>` : ""}
+              </div>
+            `).join("")}
+          </div>
+          <button class="btn-next" onclick="startQuiz()">Restart Quiz</button>
+        </div>
+      `;
+    }
+
+    // Start first time
+    startQuiz();
+  </script>
+</body>
+</html>
